@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'error' | 'success'>('error')
   const router = useRouter()
   const supabase = createClient()
 
@@ -21,16 +22,24 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        // Login
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
 
-        if (error) throw error
-        router.push('/onboarding')
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            throw new Error('E-mail ou senha incorretos')
+          }
+          throw new Error(error.message)
+        }
+
+        router.push('/dashboard')
       } else {
-        // Cadastro
+        if (password.length < 6) {
+          throw new Error('A senha deve ter pelo menos 6 caracteres')
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -41,24 +50,23 @@ export default function LoginPage() {
           },
         })
 
-        if (error) throw error
-
-        // Criar registro na tabela users
-        if (data.user) {
-          await supabase.from('users').insert({
-            id: data.user.id,
-            email: email,
-            full_name: fullName,
-            trial_ends_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-            subscription_status: 'trial',
-          })
+        if (error) {
+          if (error.message.includes('already registered')) {
+            throw new Error('Este e-mail já está cadastrado. Faça login.')
+          }
+          throw new Error(error.message)
         }
 
-        setMessage('Conta criada! Verifique seu e-mail ou faça login.')
-        setIsLogin(true)
+        setMessageType('success')
+        setMessage('Conta criada com sucesso! Redirecionando...')
+        
+        setTimeout(() => {
+          router.push('/onboarding')
+        }, 1000)
       }
     } catch (error: any) {
-      setMessage(error.message || 'Ocorreu um erro')
+      setMessageType('error')
+      setMessage(error.message || 'Ocorreu um erro. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -124,8 +132,8 @@ export default function LoginPage() {
               borderRadius: '8px', 
               marginBottom: '16px', 
               fontSize: '14px',
-              background: message.includes('erro') || message.includes('Error') ? '#fef2f2' : '#f0fdf4',
-              color: message.includes('erro') || message.includes('Error') ? '#b91c1c' : '#166534'
+              background: messageType === 'error' ? '#fef2f2' : '#f0fdf4',
+              color: messageType === 'error' ? '#b91c1c' : '#166534'
             }}>
               {message}
             </div>

@@ -6,26 +6,29 @@ import { useRouter } from 'next/navigation'
 export default function SimuladorPage() {
   const router = useRouter()
   const [faturamentoMensal, setFaturamentoMensal] = useState('')
-  const [temFuncionario, setTemFuncionario] = useState(false)
   const [resultado, setResultado] = useState<any>(null)
+  const [erro, setErro] = useState('')
 
   function calcular() {
+    setErro('')
     const valor = parseFloat(faturamentoMensal.replace(',', '.'))
+    
     if (isNaN(valor) || valor <= 0) {
-      alert('Digite um valor válido')
+      setErro('Digite um valor válido de faturamento mensal')
+      setResultado(null)
       return
     }
 
     // Valores aproximados 2026
     const dasMei = 86.05 // valor médio (serviço)
     
-    // Simples Nacional - anexo III (serviços) - alíquota aproximada inicial
-    // Cálculo simplificado para MVP
-    let aliquotaSimples = 0.06 // 6% inicial (aproximado)
+    // Simples Nacional - cálculo simplificado
+    let aliquotaSimples = 0.06 // 6% inicial
     
-    if (valor * 12 > 180000) aliquotaSimples = 0.112
-    if (valor * 12 > 360000) aliquotaSimples = 0.135
-    if (valor * 12 > 720000) aliquotaSimples = 0.16
+    const faturamentoAnual = valor * 12
+    if (faturamentoAnual > 180000) aliquotaSimples = 0.112
+    if (faturamentoAnual > 360000) aliquotaSimples = 0.135
+    if (faturamentoAnual > 720000) aliquotaSimples = 0.16
 
     const impostoSimplesMensal = valor * aliquotaSimples
     const diferencaMensal = impostoSimplesMensal - dasMei
@@ -80,16 +83,11 @@ export default function SimuladorPage() {
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={temFuncionario}
-                onChange={(e) => setTemFuncionario(e.target.checked)}
-              />
-              Já tem ou pretende ter funcionário
-            </label>
-          </div>
+          {erro && (
+            <div style={{ padding: '10px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', background: '#fef2f2', color: '#b91c1c' }}>
+              {erro}
+            </div>
+          )}
 
           <button
             onClick={calcular}

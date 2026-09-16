@@ -28,7 +28,7 @@ export default function OnboardingPage() {
         .from('companies')
         .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (company) {
         router.push('/dashboard')
@@ -66,7 +66,11 @@ export default function OnboardingPage() {
       const cleanWhatsapp = whatsapp.replace(/\D/g, '')
 
       if (cleanCnpj.length !== 14) {
-        throw new Error('CNPJ inválido')
+        throw new Error('CNPJ inválido. Digite os 14 números.')
+      }
+
+      if (cleanWhatsapp.length < 10) {
+        throw new Error('WhatsApp inválido. Digite o número com DDD.')
       }
 
       // Atualiza o WhatsApp do usuário
@@ -83,11 +87,19 @@ export default function OnboardingPage() {
         limite_anual: 81000,
       })
 
-      if (error) throw error
+      if (error) {
+        if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+          throw new Error('Este CNPJ já está cadastrado no sistema.')
+        }
+        if (error.message.includes('foreign key')) {
+          throw new Error('Erro ao vincular usuário. Tente sair e entrar novamente.')
+        }
+        throw new Error(error.message)
+      }
 
       router.push('/dashboard')
     } catch (error: any) {
-      setMessage(error.message || 'Erro ao salvar')
+      setMessage(error.message || 'Erro ao salvar. Tente novamente.')
     } finally {
       setLoading(false)
     }

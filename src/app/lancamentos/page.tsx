@@ -10,13 +10,14 @@ export default function LancamentosPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'error' | 'success'>('error')
   
   // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('servico')
-  const [message, setMessage] = useState('')
 
   const router = useRouter()
   const supabase = createClient()
@@ -32,12 +33,11 @@ export default function LancamentosPage() {
       return
     }
 
-    // Busca a empresa do usuário
     const { data: company } = await supabase
       .from('companies')
       .select('id')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!company) {
       router.push('/onboarding')
@@ -46,7 +46,6 @@ export default function LancamentosPage() {
 
     setCompanyId(company.id)
 
-    // Busca os lançamentos
     const { data: revs } = await supabase
       .from('revenues')
       .select('*')
@@ -67,7 +66,7 @@ export default function LancamentosPage() {
     try {
       const value = parseFloat(amount.replace(',', '.'))
       if (isNaN(value) || value <= 0) {
-        throw new Error('Valor inválido')
+        throw new Error('Digite um valor válido maior que zero')
       }
 
       const { error } = await supabase.from('revenues').insert({
@@ -80,13 +79,15 @@ export default function LancamentosPage() {
 
       if (error) throw error
 
+      setMessageType('success')
       setMessage('Lançamento salvo com sucesso!')
       setAmount('')
       setDescription('')
       setShowForm(false)
-      loadData() // Recarrega a lista
+      loadData()
     } catch (error: any) {
-      setMessage(error.message || 'Erro ao salvar')
+      setMessageType('error')
+      setMessage(error.message || 'Erro ao salvar. Tente novamente.')
     } finally {
       setSaving(false)
     }
@@ -107,7 +108,7 @@ export default function LancamentosPage() {
   const total = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+    <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
       {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -121,7 +122,10 @@ export default function LancamentosPage() {
         </div>
         
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm)
+            setMessage('')
+          }}
           style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
         >
           {showForm ? 'Cancelar' : '+ Novo'}
@@ -192,8 +196,8 @@ export default function LancamentosPage() {
                 borderRadius: '8px', 
                 marginBottom: '12px', 
                 fontSize: '13px',
-                background: message.includes('sucesso') ? '#f0fdf4' : '#fef2f2',
-                color: message.includes('sucesso') ? '#166534' : '#b91c1c'
+                background: messageType === 'success' ? '#f0fdf4' : '#fef2f2',
+                color: messageType === 'success' ? '#166534' : '#b91c1c'
               }}>
                 {message}
               </div>
@@ -252,7 +256,6 @@ export default function LancamentosPage() {
             ))}
           </div>
         )}
-		<div style={{ height: '80px' }}></div>
       </main>
     </div>
   )

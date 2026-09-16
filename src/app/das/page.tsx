@@ -11,10 +11,10 @@ export default function DasPage() {
   const [cnpj, setCnpj] = useState('')
   const [dasList, setDasList] = useState<any[]>([])
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'error' | 'success'>('error')
   const router = useRouter()
   const supabase = createClient()
 
-  // Valor aproximado do DAS (pode ajustar depois)
   const valorDas = 82.05
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function DasPage() {
       .from('companies')
       .select('id, cnpj')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!company) {
       router.push('/onboarding')
@@ -42,7 +42,6 @@ export default function DasPage() {
     setCompanyId(company.id)
     setCnpj(company.cnpj || '')
 
-    // Busca os DAS já registrados
     const { data } = await supabase
       .from('das_payments')
       .select('*')
@@ -64,7 +63,6 @@ export default function DasPage() {
         .toISOString()
         .split('T')[0]
 
-      // Vencimento é dia 20 do mês seguinte
       const dueDate = new Date(now.getFullYear(), now.getMonth() + 1, 20)
         .toISOString()
         .split('T')[0]
@@ -79,16 +77,17 @@ export default function DasPage() {
 
       if (error) {
         if (error.code === '23505') {
-          setMessage('O DAS deste mês já foi gerado.')
-        } else {
-          throw error
+          throw new Error('O DAS deste mês já foi registrado.')
         }
-      } else {
-        setMessage('DAS do mês gerado com sucesso!')
-        loadData()
+        throw error
       }
+
+      setMessageType('success')
+      setMessage('DAS do mês registrado com sucesso!')
+      loadData()
     } catch (error: any) {
-      setMessage(error.message || 'Erro ao gerar DAS')
+      setMessageType('error')
+      setMessage(error.message || 'Erro ao registrar DAS')
     } finally {
       setSaving(false)
     }
@@ -96,6 +95,7 @@ export default function DasPage() {
 
   async function marcarComoPago(id: string) {
     setSaving(true)
+    setMessage('')
     try {
       const { error } = await supabase
         .from('das_payments')
@@ -103,8 +103,12 @@ export default function DasPage() {
         .eq('id', id)
 
       if (error) throw error
+      
+      setMessageType('success')
+      setMessage('Marcado como pago!')
       loadData()
     } catch (error: any) {
+      setMessageType('error')
       setMessage(error.message || 'Erro ao atualizar')
     } finally {
       setSaving(false)
@@ -112,7 +116,6 @@ export default function DasPage() {
   }
 
   function abrirPgmeiOficial() {
-    // Abre o site oficial do PGMEI
     window.open(
       'https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao',
       '_blank'
@@ -145,7 +148,7 @@ export default function DasPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+    <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
       {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -161,7 +164,6 @@ export default function DasPage() {
 
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '24px 16px' }}>
         
-        {/* Card principal */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 8px' }}>
             Controle do DAS
@@ -176,7 +178,6 @@ export default function DasPage() {
             </p>
           )}
 
-          {/* Botão oficial - destaque */}
           <button
             onClick={abrirPgmeiOficial}
             style={{ 
@@ -209,7 +210,7 @@ export default function DasPage() {
               cursor: saving ? 'not-allowed' : 'pointer'
             }}
           >
-            {saving ? 'Gerando...' : 'Registrar DAS do mês (controle interno)'}
+            {saving ? 'Registrando...' : 'Registrar DAS do mês (controle interno)'}
           </button>
 
           {message && (
@@ -218,15 +219,14 @@ export default function DasPage() {
               padding: '10px', 
               borderRadius: '8px', 
               fontSize: '13px',
-              background: message.includes('sucesso') ? '#f0fdf4' : '#fef2f2',
-              color: message.includes('sucesso') ? '#166534' : '#b91c1c'
+              background: messageType === 'success' ? '#f0fdf4' : '#fef2f2',
+              color: messageType === 'success' ? '#166534' : '#b91c1c'
             }}>
               {message}
             </div>
           )}
         </div>
 
-        {/* Lista de DAS */}
         {dasList.length === 0 ? (
           <div style={{ background: 'white', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
             <p style={{ margin: 0 }}>Nenhum DAS registrado ainda.</p>
@@ -289,7 +289,6 @@ export default function DasPage() {
             ))}
           </div>
         )}
-		<div style={{ height: '80px' }}></div>
       </main>
     </div>
   )

@@ -28,12 +28,11 @@ export default function DashboardPage() {
 
     setUser(user)
 
-    // Busca dados do trial
     const { data: userData } = await supabase
       .from('users')
       .select('trial_ends_at, subscription_status')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (userData) {
       setSubscriptionStatus(userData.subscription_status || 'trial')
@@ -46,12 +45,11 @@ export default function DashboardPage() {
       }
     }
 
-    // Busca a empresa
     const { data: company } = await supabase
       .from('companies')
       .select('id, limite_anual')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!company) {
       router.push('/onboarding')
@@ -60,7 +58,6 @@ export default function DashboardPage() {
 
     setLimiteAnual(Number(company.limite_anual) || 81000)
 
-    // Soma os lançamentos do ano atual
     const year = new Date().getFullYear()
     const { data: revenues } = await supabase
       .from('revenues')
@@ -108,7 +105,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+    <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
       {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -126,7 +123,6 @@ export default function DashboardPage() {
         </button>
       </header>
 
-      {/* Conteúdo */}
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 20px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
           Olá{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}!
@@ -141,15 +137,35 @@ export default function DashboardPage() {
             background: trialDaysLeft <= 3 ? '#fef2f2' : '#eff6ff', 
             border: `1px solid ${trialDaysLeft <= 3 ? '#fecaca' : '#bfdbfe'}`,
             borderRadius: '12px', 
-            padding: '14px 16px', 
+            padding: '16px', 
             marginBottom: '24px',
-            fontSize: '14px',
-            color: trialDaysLeft <= 3 ? '#b91c1c' : '#1e40af'
           }}>
-            {trialDaysLeft > 0 
-              ? `Seu teste grátis termina em ${trialDaysLeft} dia${trialDaysLeft > 1 ? 's' : ''}.`
-              : 'Seu teste grátis acabou. Assine para continuar usando.'
-            }
+            <p style={{ 
+              margin: '0 0 10px', 
+              fontSize: '14px',
+              color: trialDaysLeft <= 3 ? '#b91c1c' : '#1e40af',
+              fontWeight: '500'
+            }}>
+              {trialDaysLeft > 0 
+                ? `Seu teste grátis termina em ${trialDaysLeft} dia${trialDaysLeft > 1 ? 's' : ''}.`
+                : 'Seu teste grátis acabou.'
+              }
+            </p>
+            <button
+              onClick={() => alert('Em breve você poderá assinar o plano. Estamos finalizando a integração de pagamento.')}
+              style={{
+                padding: '8px 16px',
+                background: trialDaysLeft <= 3 ? '#dc2626' : '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Quero assinar
+            </button>
           </div>
         )}
 
@@ -211,12 +227,28 @@ export default function DashboardPage() {
             border: '1px solid #d1d5db', 
             borderRadius: '12px', 
             fontWeight: '600', 
-            cursor: 'pointer' 
+            cursor: 'pointer',
+            marginBottom: '12px'
           }}
         >
           Controle do DAS
         </button>
-		<div style={{ height: '80px' }}></div>
+
+        <button 
+          onClick={() => router.push('/simulador')}
+          style={{ 
+            width: '100%', 
+            padding: '16px', 
+            background: 'white', 
+            color: '#374151', 
+            border: '1px solid #d1d5db', 
+            borderRadius: '12px', 
+            fontWeight: '600', 
+            cursor: 'pointer'
+          }}
+        >
+          Simulador MEI → ME
+        </button>
       </main>
     </div>
   )

@@ -12,10 +12,15 @@ export default function DasPage() {
   const [dasList, setDasList] = useState<any[]>([])
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'error' | 'success'>('error')
+  const [showForm, setShowForm] = useState(false)
+  
+  // Formulário para mês anterior
+  const [referenceMonth, setReferenceMonth] = useState('')
+  const [amount, setAmount] = useState('82.05')
+  const [dueDate, setDueDate] = useState('')
+
   const router = useRouter()
   const supabase = createClient()
-
-  const valorDas = 82.05
 
   useEffect(() => {
     loadData()
@@ -59,19 +64,19 @@ export default function DasPage() {
 
     try {
       const now = new Date()
-      const referenceMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const refMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         .toISOString()
         .split('T')[0]
 
-      const dueDate = new Date(now.getFullYear(), now.getMonth() + 1, 20)
+      const due = new Date(now.getFullYear(), now.getMonth() + 1, 20)
         .toISOString()
         .split('T')[0]
 
       const { error } = await supabase.from('das_payments').insert({
         company_id: companyId,
-        reference_month: referenceMonth,
-        amount: valorDas,
-        due_date: dueDate,
+        reference_month: refMonth,
+        amount: 82.05,
+        due_date: due,
         paid: false,
       })
 
@@ -83,11 +88,66 @@ export default function DasPage() {
       }
 
       setMessageType('success')
-      setMessage('DAS do mês registrado com sucesso!')
+      setMessage('DAS do mês atual registrado com sucesso!')
       loadData()
     } catch (error: any) {
       setMessageType('error')
       setMessage(error.message || 'Erro ao registrar DAS')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function salvarMesAnterior(e: React.FormEvent) {
+    e.preventDefault()
+    if (!companyId) return
+
+    setSaving(true)
+    setMessage('')
+
+    try {
+      if (!referenceMonth) {
+        throw new Error('Escolha o mês de referência')
+      }
+
+      const value = parseFloat(amount.replace(',', '.'))
+      if (isNaN(value) || value <= 0) {
+        throw new Error('Valor inválido')
+      }
+
+      // Se não informou vencimento, coloca dia 20 do mês seguinte
+      let finalDueDate = dueDate
+      if (!finalDueDate) {
+        const [year, month] = referenceMonth.split('-')
+        const due = new Date(Number(year), Number(month), 20)
+        finalDueDate = due.toISOString().split('T')[0]
+      }
+
+      const { error } = await supabase.from('das_payments').insert({
+        company_id: companyId,
+        reference_month: referenceMonth + '-01',
+        amount: value,
+        due_date: finalDueDate,
+        paid: false,
+      })
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('Já existe DAS registrado para este mês.')
+        }
+        throw error
+      }
+
+      setMessageType('success')
+      setMessage('DAS de mês anterior registrado!')
+      setShowForm(false)
+      setReferenceMonth('')
+      setAmount('82.05')
+      setDueDate('')
+      loadData()
+    } catch (error: any) {
+      setMessageType('error')
+      setMessage(error.message || 'Erro ao salvar')
     } finally {
       setSaving(false)
     }
@@ -149,7 +209,6 @@ export default function DasPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
-      {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button 
@@ -169,7 +228,7 @@ export default function DasPage() {
             Controle do DAS
           </h2>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 16px' }}>
-            Gere o controle interno e emita a guia oficial no site da Receita Federal.
+            Registre o DAS do mês atual ou de meses anteriores.
           </p>
 
           {cnpj && (
@@ -207,10 +266,30 @@ export default function DasPage() {
               border: 'none', 
               borderRadius: '8px', 
               fontWeight: '600',
-              cursor: saving ? 'not-allowed' : 'pointer'
+              cursor: saving ? 'not-allowed' : 'pointer',
+              marginBottom: '10px'
             }}
           >
-            {saving ? 'Registrando...' : 'Registrar DAS do mês (controle interno)'}
+            {saving ? 'Registrando...' : 'Registrar DAS do mês atual'}
+          </button>
+
+          <button
+            onClick={() => {
+              setShowForm(!showForm)
+              setMessage('')
+            }}
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              background: 'white', 
+              color: '#374151', 
+              border: '1px solid #d1d5db', 
+              borderRadius: '8px', 
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            {showForm ? 'Cancelar' : '+ Registrar mês anterior'}
           </button>
 
           {message && (
@@ -227,6 +306,71 @@ export default function DasPage() {
           )}
         </div>
 
+        {/* Formulário de mês anterior */}
+        {showForm && (
+          <form onSubmit={salvarMesAnterior} style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 16px' }}>
+              Registrar DAS de mês anterior
+            </h3>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
+                Mês de referência
+              </label>
+              <input
+                type="month"
+                value={referenceMonth}
+                onChange={(e) => setReferenceMonth(e.target.value)}
+                required
+                style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
+                Valor (R$)
+              </label>
+              <input
+                type="text"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
+                Data de vencimento (opcional)
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                background: saving ? '#93c5fd' : '#2563eb', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600',
+                cursor: saving ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {saving ? 'Salvando...' : 'Salvar DAS'}
+            </button>
+          </form>
+        )}
+
+        {/* Lista */}
         {dasList.length === 0 ? (
           <div style={{ background: 'white', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
             <p style={{ margin: 0 }}>Nenhum DAS registrado ainda.</p>

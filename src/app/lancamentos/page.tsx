@@ -13,7 +13,6 @@ export default function LancamentosPage() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'error' | 'success'>('error')
   
-  // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
@@ -109,7 +108,6 @@ export default function LancamentosPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
-      {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button 
@@ -136,15 +134,22 @@ export default function LancamentosPage() {
         
         {/* Total */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px' }}>Total lançado</p>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px' }}>Total lançado no ano</p>
           <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#111827' }}>{formatMoney(total)}</p>
+        </div>
+
+        {/* Aviso sobre meses anteriores */}
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px', marginBottom: '20px', fontSize: '13px', color: '#1e40af' }}>
+          Você pode lançar valores de <strong>meses anteriores</strong>. Basta escolher a data correta no formulário.
         </div>
 
         {/* Formulário */}
         {showForm && (
           <form onSubmit={handleSubmit} style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>Data</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
+                Data do faturamento
+              </label>
               <input
                 type="date"
                 value={date}
@@ -152,6 +157,9 @@ export default function LancamentosPage() {
                 required
                 style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }}
               />
+              <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                Pode ser de qualquer mês deste ano
+              </p>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
@@ -222,7 +230,7 @@ export default function LancamentosPage() {
           </form>
         )}
 
-        {/* Lista de lançamentos */}
+        {/* Lista */}
         {revenues.length === 0 ? (
           <div style={{ background: 'white', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
             <p style={{ margin: 0 }}>Nenhum lançamento ainda.</p>

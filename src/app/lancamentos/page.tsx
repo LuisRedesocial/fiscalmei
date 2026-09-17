@@ -12,6 +12,7 @@ export default function LancamentosPage() {
   const [showForm, setShowForm] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'error' | 'success'>('error')
+  const [view, setView] = useState<'lista' | 'meses'>('meses') // começa mostrando os meses
   
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [amount, setAmount] = useState('')
@@ -96,6 +97,34 @@ export default function LancamentosPage() {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   }
 
+  // Agrupa os lançamentos por mês
+  function getMonthlySummary() {
+    const months: { [key: string]: { total: number, count: number, label: string } } = {}
+    
+    const year = new Date().getFullYear()
+    
+    // Cria os 12 meses do ano
+    for (let m = 0; m < 12; m++) {
+      const key = `${year}-${String(m + 1).padStart(2, '0')}`
+      const date = new Date(year, m, 1)
+      const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      months[key] = { total: 0, count: 0, label }
+    }
+
+    // Soma os lançamentos
+    revenues.forEach(rev => {
+      const key = rev.date.substring(0, 7) // YYYY-MM
+      if (months[key]) {
+        months[key].total += Number(rev.amount)
+        months[key].count += 1
+      }
+    })
+
+    return Object.entries(months)
+      .sort((a, b) => b[0].localeCompare(a[0])) // mais recente primeiro
+      .map(([key, data]) => ({ key, ...data }))
+  }
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -105,6 +134,7 @@ export default function LancamentosPage() {
   }
 
   const total = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
+  const monthlySummary = getMonthlySummary()
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
@@ -132,15 +162,57 @@ export default function LancamentosPage() {
 
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '24px 16px' }}>
         
-        {/* Total */}
-        <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
+        {/* Total do ano */}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px' }}>Total lançado no ano</p>
           <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#111827' }}>{formatMoney(total)}</p>
         </div>
 
-        {/* Aviso sobre meses anteriores */}
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px', marginBottom: '20px', fontSize: '13px', color: '#1e40af' }}>
-          Você pode lançar valores de <strong>meses anteriores</strong>. Basta escolher a data correta no formulário.
+        {/* Alternar visualização */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button
+            onClick={() => setView('meses')}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: 'none',
+              background: view === 'meses' ? '#2563eb' : 'white',
+              color: view === 'meses' ? 'white' : '#374151',
+              fontWeight: '600',
+              fontSize: '14px',
+              cursor: 'pointer',
+              borderWidth: view === 'meses' ? 0 : 1,
+              borderStyle: 'solid',
+              borderColor: '#d1d5db'
+            }}
+          >
+            Por mês
+          </button>
+          <button
+            onClick={() => setView('lista')}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: 'none',
+              background: view === 'lista' ? '#2563eb' : 'white',
+              color: view === 'lista' ? 'white' : '#374151',
+              fontWeight: '600',
+              fontSize: '14px',
+              cursor: 'pointer',
+              borderWidth: view === 'lista' ? 0 : 1,
+              borderStyle: 'solid',
+              borderColor: '#d1d5db'
+            }}
+          >
+            Todos os lançamentos
+          </button>
+        </div>
+
+        {/* Aviso */}
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: '#1e40af' }}>
+          Você pode lançar valores de <strong>meses anteriores</strong>. Basta escolher a data correta.
         </div>
 
         {/* Formulário */}
@@ -157,9 +229,6 @@ export default function LancamentosPage() {
                 required
                 style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }}
               />
-              <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b7280' }}>
-                Pode ser de qualquer mês deste ano
-              </p>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
@@ -230,17 +299,12 @@ export default function LancamentosPage() {
           </form>
         )}
 
-        {/* Lista */}
-        {revenues.length === 0 ? (
-          <div style={{ background: 'white', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
-            <p style={{ margin: 0 }}>Nenhum lançamento ainda.</p>
-            <p style={{ margin: '8px 0 0', fontSize: '14px' }}>Clique em “+ Novo” para começar.</p>
-          </div>
-        ) : (
+        {/* Visualização por mês */}
+        {view === 'meses' && (
           <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
-            {revenues.map((rev) => (
+            {monthlySummary.map((month) => (
               <div 
-                key={rev.id} 
+                key={month.key}
                 style={{ 
                   padding: '16px 20px', 
                   borderBottom: '1px solid #f3f4f6',
@@ -250,19 +314,61 @@ export default function LancamentosPage() {
                 }}
               >
                 <div>
-                  <p style={{ margin: 0, fontWeight: '500', fontSize: '15px' }}>
-                    {rev.description || 'Sem descrição'}
+                  <p style={{ margin: 0, fontWeight: '500', fontSize: '15px', textTransform: 'capitalize' }}>
+                    {month.label}
                   </p>
                   <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>
-                    {new Date(rev.date + 'T12:00:00').toLocaleDateString('pt-BR')} · {rev.category}
+                    {month.count} lançamento{month.count !== 1 ? 's' : ''}
                   </p>
                 </div>
-                <p style={{ margin: 0, fontWeight: '600', fontSize: '15px', color: '#059669' }}>
-                  {formatMoney(Number(rev.amount))}
+                <p style={{ 
+                  margin: 0, 
+                  fontWeight: '600', 
+                  fontSize: '15px', 
+                  color: month.total > 0 ? '#059669' : '#9ca3af' 
+                }}>
+                  {formatMoney(month.total)}
                 </p>
               </div>
             ))}
           </div>
+        )}
+
+        {/* Visualização em lista */}
+        {view === 'lista' && (
+          revenues.length === 0 ? (
+            <div style={{ background: 'white', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
+              <p style={{ margin: 0 }}>Nenhum lançamento ainda.</p>
+              <p style={{ margin: '8px 0 0', fontSize: '14px' }}>Clique em “+ Novo” para começar.</p>
+            </div>
+          ) : (
+            <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
+              {revenues.map((rev) => (
+                <div 
+                  key={rev.id} 
+                  style={{ 
+                    padding: '16px 20px', 
+                    borderBottom: '1px solid #f3f4f6',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <p style={{ margin: 0, fontWeight: '500', fontSize: '15px' }}>
+                      {rev.description || 'Sem descrição'}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>
+                      {new Date(rev.date + 'T12:00:00').toLocaleDateString('pt-BR')} · {rev.category}
+                    </p>
+                  </div>
+                  <p style={{ margin: 0, fontWeight: '600', fontSize: '15px', color: '#059669' }}>
+                    {formatMoney(Number(rev.amount))}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </main>
     </div>

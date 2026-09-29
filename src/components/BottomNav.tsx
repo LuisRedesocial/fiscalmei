@@ -7,11 +7,12 @@ export default function BottomNav() {
   const router = useRouter()
 
   const items = [
-    { label: 'Início', path: '/dashboard', icon: '🏠' },
-    { label: 'Lançamentos', path: '/lancamentos', icon: '📋' },
-    { label: 'DAS', path: '/das', icon: '📄' },
-    { label: 'Simulador', path: '/simulador', icon: '🧮' },
-  ]
+  { label: 'Início', path: '/dashboard', icon: '🏠' },
+  { label: 'Lançamentos', path: '/lancamentos', icon: '📋' },
+  { label: 'DAS', path: '/das', icon: '📄' },
+  { label: 'Guias', path: '/guias', icon: '📚' },
+  { label: 'Simulador', path: '/simulador', icon: '🧮' },
+]
 
   // Não mostra o menu em login, onboarding e página inicial
   if (pathname === '/login' || pathname === '/onboarding' || pathname === '/') {

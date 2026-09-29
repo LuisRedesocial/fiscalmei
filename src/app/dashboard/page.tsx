@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState('trial')
   const [loading, setLoading] = useState(true)
+  const [limitAlert, setLimitAlert] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -28,6 +29,7 @@ export default function DashboardPage() {
 
     setUser(user)
 
+    // Dados do trial
     const { data: userData } = await supabase
       .from('users')
       .select('trial_ends_at, subscription_status')
@@ -45,6 +47,7 @@ export default function DashboardPage() {
       }
     }
 
+    // Empresa
     const { data: company } = await supabase
       .from('companies')
       .select('id, limite_anual')
@@ -56,8 +59,10 @@ export default function DashboardPage() {
       return
     }
 
-    setLimiteAnual(Number(company.limite_anual) || 81000)
+    const limite = Number(company.limite_anual) || 81000
+    setLimiteAnual(limite)
 
+    // Lançamentos do ano
     const year = new Date().getFullYear()
     const { data: revenues } = await supabase
       .from('revenues')
@@ -68,7 +73,54 @@ export default function DashboardPage() {
 
     const total = (revenues || []).reduce((sum, r) => sum + Number(r.amount), 0)
     setTotalFaturado(total)
+
+    // Verifica alertas de limite
+    await checkLimitAlerts(user.id, company.id, total, limite)
+
     setLoading(false)
+  }
+
+  async function checkLimitAlerts(userId: string, companyId: string, total: number, limite: number) {
+    const percentual = limite > 0 ? (total / limite) * 100 : 0
+
+    let alertType = null
+    let message = null
+
+    if (percentual >= 95) {
+      alertType = 'limit_95'
+      message = `Atenção crítica! Você já atingiu ${percentual.toFixed(1)}% do limite anual do MEI.`
+    } else if (percentual >= 85) {
+      alertType = 'limit_85'
+      message = `Atenção! Você já atingiu ${percentual.toFixed(1)}% do limite anual do MEI.`
+    } else if (percentual >= 70) {
+      alertType = 'limit_70'
+      message = `Alerta: Você já atingiu ${percentual.toFixed(1)}% do limite anual do MEI.`
+    }
+
+    if (alertType && message) {
+      setLimitAlert(message)
+
+      // Verifica se já existe alerta deste tipo este ano
+      const { data: existing } = await supabase
+        .from('alerts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', alertType)
+        .gte('created_at', `${new Date().getFullYear()}-01-01`)
+        .maybeSingle()
+
+      // Se não existe, cria o alerta
+      if (!existing) {
+        await supabase.from('alerts').insert({
+          user_id: userId,
+          company_id: companyId,
+          type: alertType,
+          message,
+          percentage: percentual,
+          sent: false
+        })
+      }
+    }
   }
 
   async function handleLogout() {
@@ -138,7 +190,7 @@ export default function DashboardPage() {
             border: `1px solid ${trialDaysLeft <= 3 ? '#fecaca' : '#bfdbfe'}`,
             borderRadius: '12px', 
             padding: '16px', 
-            marginBottom: '24px',
+            marginBottom: '20px',
           }}>
             <p style={{ 
               margin: '0 0 10px', 
@@ -166,6 +218,22 @@ export default function DashboardPage() {
             >
               Quero assinar
             </button>
+          </div>
+        )}
+
+        {/* Alerta de limite */}
+        {limitAlert && (
+          <div style={{ 
+            background: percentual >= 95 ? '#fef2f2' : percentual >= 85 ? '#fff7ed' : '#fefce8',
+            border: `1px solid ${percentual >= 95 ? '#fecaca' : percentual >= 85 ? '#fed7aa' : '#fef08a'}`,
+            borderRadius: '12px', 
+            padding: '16px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            color: percentual >= 95 ? '#b91c1c' : percentual >= 85 ? '#c2410c' : '#a16207',
+            fontWeight: '500'
+          }}>
+            ⚠️ {limitAlert}
           </div>
         )}
 

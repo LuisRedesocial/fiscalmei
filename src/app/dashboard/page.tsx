@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState('trial')
   const [loading, setLoading] = useState(true)
   const [limitAlert, setLimitAlert] = useState<string | null>(null)
+  const [dasAlert, setDasAlert] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -74,8 +75,9 @@ export default function DashboardPage() {
     const total = (revenues || []).reduce((sum, r) => sum + Number(r.amount), 0)
     setTotalFaturado(total)
 
-    // Verifica alertas de limite
+    // Verifica alertas
     await checkLimitAlerts(user.id, company.id, total, limite)
+    await checkDasAlerts(user.id, company.id)
 
     setLoading(false)
   }
@@ -109,7 +111,6 @@ export default function DashboardPage() {
         .gte('created_at', `${new Date().getFullYear()}-01-01`)
         .maybeSingle()
 
-      // Se não existe, cria o alerta
       if (!existing) {
         await supabase.from('alerts').insert({
           user_id: userId,
@@ -119,6 +120,36 @@ export default function DashboardPage() {
           percentage: percentual,
           sent: false
         })
+      }
+    }
+  }
+
+  async function checkDasAlerts(userId: string, companyId: string) {
+    const { data: dasList } = await supabase
+      .from('das_payments')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('paid', false)
+      .order('due_date', { ascending: true })
+
+    if (!dasList || dasList.length === 0) return
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    for (const das of dasList) {
+      const due = new Date(das.due_date + 'T12:00:00')
+      const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (diffDays < 0) {
+        setDasAlert(`DAS de ${new Date(das.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' })} está vencido!`)
+        break
+      } else if (diffDays <= 1) {
+        setDasAlert(`DAS vence amanhã ou hoje! Não esqueça de pagar.`)
+        break
+      } else if (diffDays <= 5) {
+        setDasAlert(`DAS vence em ${diffDays} dias. Prepare o pagamento.`)
+        break
       }
     }
   }
@@ -234,6 +265,22 @@ export default function DashboardPage() {
             fontWeight: '500'
           }}>
             ⚠️ {limitAlert}
+          </div>
+        )}
+
+        {/* Alerta de DAS */}
+        {dasAlert && (
+          <div style={{ 
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px', 
+            padding: '16px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            color: '#b91c1c',
+            fontWeight: '500'
+          }}>
+            📅 {dasAlert}
           </div>
         )}
 

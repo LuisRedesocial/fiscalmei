@@ -13,6 +13,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [limitAlert, setLimitAlert] = useState<string | null>(null)
   const [dasAlert, setDasAlert] = useState<string | null>(null)
+  const [cnpj, setCnpj] = useState('')
+  const [companyId, setCompanyId] = useState<string | null>(null)
+  const [showEditCnpj, setShowEditCnpj] = useState(false)
+  const [newCnpj, setNewCnpj] = useState('')
+  const [savingCnpj, setSavingCnpj] = useState(false)
+  const [cnpjMessage, setCnpjMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -30,7 +36,6 @@ export default function DashboardPage() {
 
     setUser(user)
 
-    // Dados do trial
     const { data: userData } = await supabase
       .from('users')
       .select('trial_ends_at, subscription_status')
@@ -48,10 +53,9 @@ export default function DashboardPage() {
       }
     }
 
-    // Empresa
     const { data: company } = await supabase
       .from('companies')
-      .select('id, limite_anual')
+      .select('id, limite_anual, cnpj')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -60,10 +64,12 @@ export default function DashboardPage() {
       return
     }
 
+    setCompanyId(company.id)
+    setCnpj(company.cnpj || '')
+    setNewCnpj(formatCnpj(company.cnpj || ''))
     const limite = Number(company.limite_anual) || 81000
     setLimiteAnual(limite)
 
-    // Lançamentos do ano
     const year = new Date().getFullYear()
     const { data: revenues } = await supabase
       .from('revenues')
@@ -75,7 +81,6 @@ export default function DashboardPage() {
     const total = (revenues || []).reduce((sum, r) => sum + Number(r.amount), 0)
     setTotalFaturado(total)
 
-    // Verifica alertas
     await checkLimitAlerts(user.id, company.id, total, limite)
     await checkDasAlerts(user.id, company.id)
 
@@ -102,7 +107,6 @@ export default function DashboardPage() {
     if (alertType && message) {
       setLimitAlert(message)
 
-      // Verifica se já existe alerta deste tipo este ano
       const { data: existing } = await supabase
         .from('alerts')
         .select('id')
@@ -151,6 +155,52 @@ export default function DashboardPage() {
         setDasAlert(`DAS vence em ${diffDays} dias. Prepare o pagamento.`)
         break
       }
+    }
+  }
+
+  function formatCnpj(value: string) {
+    const numbers = value.replace(/\D/g, '')
+    return numbers.replace(
+      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+      '$1.$2.$3/$4-$5'
+    )
+  }
+
+  function handleCnpjChange(value: string) {
+    const numbers = value.replace(/\D/g, '').slice(0, 14)
+    setNewCnpj(formatCnpj(numbers))
+  }
+
+  async function salvarCnpj() {
+    if (!companyId) return
+    setSavingCnpj(true)
+    setCnpjMessage('')
+
+    try {
+      const cleanCnpj = newCnpj.replace(/\D/g, '')
+      if (cleanCnpj.length !== 14) {
+        throw new Error('CNPJ inválido. Digite os 14 números.')
+      }
+
+      const { error } = await supabase
+        .from('companies')
+        .update({ cnpj: cleanCnpj })
+        .eq('id', companyId)
+
+      if (error) {
+        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+          throw new Error('Este CNPJ já está cadastrado em outra conta.')
+        }
+        throw error
+      }
+
+      setCnpj(cleanCnpj)
+      setShowEditCnpj(false)
+      setCnpjMessage('CNPJ atualizado com sucesso!')
+    } catch (error: any) {
+      setCnpjMessage(error.message || 'Erro ao atualizar CNPJ')
+    } finally {
+      setSavingCnpj(false)
     }
   }
 
@@ -210,9 +260,65 @@ export default function DashboardPage() {
         <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
           Olá{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}!
         </h1>
-        <p style={{ color: '#6b7280', marginBottom: '24px' }}>
+        <p style={{ color: '#6b7280', marginBottom: '16px' }}>
           Acompanhe seu limite de faturamento do MEI
         </p>
+
+        {/* CNPJ vinculado */}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>CNPJ vinculado</p>
+            <p style={{ margin: '2px 0 0', fontSize: '15px', fontWeight: '600' }}>
+              {cnpj ? formatCnpj(cnpj) : 'Não informado'}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setShowEditCnpj(!showEditCnpj)
+              setCnpjMessage('')
+            }}
+            style={{ padding: '8px 12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}
+          >
+            {showEditCnpj ? 'Cancelar' : 'Alterar'}
+          </button>
+        </div>
+
+        {/* Formulário de alteração de CNPJ */}
+        {showEditCnpj && (
+          <div style={{ background: 'white', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>
+              Novo CNPJ
+            </label>
+            <input
+              type="text"
+              value={newCnpj}
+              onChange={(e) => handleCnpjChange(e.target.value)}
+              placeholder="00.000.000/0001-00"
+              style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }}
+            />
+            {cnpjMessage && (
+              <p style={{ fontSize: '13px', color: cnpjMessage.includes('sucesso') ? '#166534' : '#b91c1c', marginBottom: '12px' }}>
+                {cnpjMessage}
+              </p>
+            )}
+            <button
+              onClick={salvarCnpj}
+              disabled={savingCnpj}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                background: savingCnpj ? '#93c5fd' : '#2563eb', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600',
+                cursor: savingCnpj ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {savingCnpj ? 'Salvando...' : 'Salvar CNPJ'}
+            </button>
+          </div>
+        )}
 
         {/* Aviso do teste grátis */}
         {subscriptionStatus === 'trial' && trialDaysLeft !== null && (
@@ -359,10 +465,27 @@ export default function DashboardPage() {
             border: '1px solid #d1d5db', 
             borderRadius: '12px', 
             fontWeight: '600', 
-            cursor: 'pointer'
+            cursor: 'pointer',
+            marginBottom: '12px'
           }}
         >
           Simulador MEI → ME
+        </button>
+
+        <button 
+          onClick={() => router.push('/guias')}
+          style={{ 
+            width: '100%', 
+            padding: '16px', 
+            background: 'white', 
+            color: '#374151', 
+            border: '1px solid #d1d5db', 
+            borderRadius: '12px', 
+            fontWeight: '600', 
+            cursor: 'pointer'
+          }}
+        >
+          Guias e Checklist
         </button>
       </main>
     </div>

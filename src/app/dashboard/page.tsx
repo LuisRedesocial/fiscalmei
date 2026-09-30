@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { cleanCnpj, formatCnpj, isValidCnpj } from '@/lib/cnpj'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -158,17 +159,8 @@ export default function DashboardPage() {
     }
   }
 
-  function formatCnpj(value: string) {
-    const numbers = value.replace(/\D/g, '')
-    return numbers.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      '$1.$2.$3/$4-$5'
-    )
-  }
-
-  function handleCnpjChange(value: string) {
-    const numbers = value.replace(/\D/g, '').slice(0, 14)
-    setNewCnpj(formatCnpj(numbers))
+  function handleCnpjInput(value: string) {
+    setNewCnpj(formatCnpj(value))
   }
 
   async function salvarCnpj() {
@@ -177,14 +169,15 @@ export default function DashboardPage() {
     setCnpjMessage('')
 
     try {
-      const cleanCnpj = newCnpj.replace(/\D/g, '')
-      if (cleanCnpj.length !== 14) {
-        throw new Error('CNPJ inválido. Digite os 14 números.')
+      const clean = cleanCnpj(newCnpj)
+
+      if (!isValidCnpj(clean)) {
+        throw new Error('CNPJ inválido. Verifique os números digitados.')
       }
 
       const { error } = await supabase
         .from('companies')
-        .update({ cnpj: cleanCnpj })
+        .update({ cnpj: clean })
         .eq('id', companyId)
 
       if (error) {
@@ -194,7 +187,7 @@ export default function DashboardPage() {
         throw error
       }
 
-      setCnpj(cleanCnpj)
+      setCnpj(clean)
       setShowEditCnpj(false)
       setCnpjMessage('CNPJ atualizado com sucesso!')
     } catch (error: any) {
@@ -239,7 +232,6 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '80px' }}>
-      {/* Header */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '32px', height: '32px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -276,6 +268,7 @@ export default function DashboardPage() {
             onClick={() => {
               setShowEditCnpj(!showEditCnpj)
               setCnpjMessage('')
+              setNewCnpj(formatCnpj(cnpj))
             }}
             style={{ padding: '8px 12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}
           >
@@ -283,7 +276,6 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Formulário de alteração de CNPJ */}
         {showEditCnpj && (
           <div style={{ background: 'white', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>
@@ -292,7 +284,7 @@ export default function DashboardPage() {
             <input
               type="text"
               value={newCnpj}
-              onChange={(e) => handleCnpjChange(e.target.value)}
+              onChange={(e) => handleCnpjInput(e.target.value)}
               placeholder="00.000.000/0001-00"
               style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }}
             />

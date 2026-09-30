@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { cleanCnpj, formatCnpj, isValidCnpj } from '@/lib/cnpj'
 
 export default function OnboardingPage() {
   const [cnpj, setCnpj] = useState('')
@@ -38,15 +39,6 @@ export default function OnboardingPage() {
     checkUser()
   }, [])
 
-  function formatCNPJ(value: string) {
-    const numbers = value.replace(/\D/g, '').slice(0, 14)
-    return numbers
-      .replace(/^(\d{2})(\d)/, '$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-  }
-
   function formatWhatsApp(value: string) {
     const numbers = value.replace(/\D/g, '').slice(0, 11)
     if (numbers.length <= 10) {
@@ -56,7 +48,7 @@ export default function OnboardingPage() {
   }
 
   async function consultarCNPJ(cnpjValue: string) {
-    const clean = cnpjValue.replace(/\D/g, '')
+    const clean = cleanCnpj(cnpjValue)
     if (clean.length !== 14) {
       setEmpresaInfo(null)
       return
@@ -84,7 +76,6 @@ export default function OnboardingPage() {
         uf: data.uf || ''
       })
 
-      // Tenta identificar o tipo de atividade pelo CNAE
       const cnaeText = (data.cnae_fiscal_descricao || '').toLowerCase()
       if (cnaeText.includes('comércio') || cnaeText.includes('comercio') || cnaeText.includes('varejo')) {
         setTipoAtividade('comercio')
@@ -101,14 +92,21 @@ export default function OnboardingPage() {
   }
 
   function handleCnpjChange(value: string) {
-    const formatted = formatCNPJ(value)
+    const formatted = formatCnpj(value)
     setCnpj(formatted)
     
-    const clean = value.replace(/\D/g, '')
+    const clean = cleanCnpj(value)
     if (clean.length === 14) {
+      if (!isValidCnpj(clean)) {
+        setMessage('CNPJ inválido. Verifique os números digitados.')
+        setEmpresaInfo(null)
+        return
+      }
+      setMessage('')
       consultarCNPJ(clean)
     } else {
       setEmpresaInfo(null)
+      setMessage('')
     }
   }
 
@@ -120,11 +118,11 @@ export default function OnboardingPage() {
     setMessage('')
 
     try {
-      const cleanCnpj = cnpj.replace(/\D/g, '')
+      const cleanCnpjValue = cleanCnpj(cnpj)
       const cleanWhatsapp = whatsapp.replace(/\D/g, '')
 
-      if (cleanCnpj.length !== 14) {
-        throw new Error('CNPJ inválido. Digite os 14 números.')
+      if (!isValidCnpj(cleanCnpjValue)) {
+        throw new Error('CNPJ inválido. Verifique os números digitados.')
       }
 
       if (cleanWhatsapp.length < 10) {
@@ -138,7 +136,7 @@ export default function OnboardingPage() {
 
       const { error } = await supabase.from('companies').insert({
         user_id: userId,
-        cnpj: cleanCnpj,
+        cnpj: cleanCnpjValue,
         tipo_atividade: tipoAtividade,
         limite_anual: 81000,
       })
@@ -188,7 +186,6 @@ export default function OnboardingPage() {
             )}
           </div>
 
-          {/* Dados da empresa encontrados */}
           {empresaInfo && (
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
               <p style={{ margin: '0 0 4px', fontWeight: '600', color: '#166534' }}>
@@ -243,19 +240,4 @@ export default function OnboardingPage() {
             style={{ 
               width: '100%', 
               padding: '14px', 
-              background: loading ? '#93c5fd' : '#2563eb', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '10px', 
-              fontSize: '16px', 
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Salvando...' : 'Continuar'}
-          </button>
-        </form>
-      </div>
-    </main>
-  )
-}
+              background: 

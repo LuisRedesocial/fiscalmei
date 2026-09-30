@@ -9,8 +9,10 @@ export default function OnboardingPage() {
   const [whatsapp, setWhatsapp] = useState('')
   const [tipoAtividade, setTipoAtividade] = useState('servico')
   const [loading, setLoading] = useState(false)
+  const [consultando, setConsultando] = useState(false)
   const [message, setMessage] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [empresaInfo, setEmpresaInfo] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -23,7 +25,6 @@ export default function OnboardingPage() {
       }
       setUserId(user.id)
 
-      // Verifica se já tem empresa cadastrada
       const { data: company } = await supabase
         .from('companies')
         .select('id')
@@ -54,6 +55,63 @@ export default function OnboardingPage() {
     return numbers.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
   }
 
+  async function consultarCNPJ(cnpjValue: string) {
+    const clean = cnpjValue.replace(/\D/g, '')
+    if (clean.length !== 14) {
+      setEmpresaInfo(null)
+      return
+    }
+
+    setConsultando(true)
+    setMessage('')
+    setEmpresaInfo(null)
+
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`)
+      
+      if (!res.ok) {
+        throw new Error('CNPJ não encontrado na Receita Federal')
+      }
+
+      const data = await res.json()
+      
+      setEmpresaInfo({
+        razao_social: data.razao_social || data.nome_fantasia || '',
+        nome_fantasia: data.nome_fantasia || '',
+        situacao: data.descricao_situacao_cadastral || data.situacao_cadastral || '',
+        cnae: data.cnae_fiscal_descricao || data.cnae_fiscal || '',
+        municipio: data.municipio || '',
+        uf: data.uf || ''
+      })
+
+      // Tenta identificar o tipo de atividade pelo CNAE
+      const cnaeText = (data.cnae_fiscal_descricao || '').toLowerCase()
+      if (cnaeText.includes('comércio') || cnaeText.includes('comercio') || cnaeText.includes('varejo')) {
+        setTipoAtividade('comercio')
+      } else if (cnaeText.includes('serviço') || cnaeText.includes('servico')) {
+        setTipoAtividade('servico')
+      }
+
+    } catch (error: any) {
+      setMessage(error.message || 'Não foi possível consultar o CNPJ')
+      setEmpresaInfo(null)
+    } finally {
+      setConsultando(false)
+    }
+  }
+
+  function handleCnpjChange(value: string) {
+    const formatted = formatCNPJ(value)
+    setCnpj(formatted)
+    
+    const clean = value.replace(/\D/g, '')
+    if (clean.length === 14) {
+      consultarCNPJ(clean)
+    } else {
+      setEmpresaInfo(null)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!userId) return
@@ -73,13 +131,11 @@ export default function OnboardingPage() {
         throw new Error('WhatsApp inválido. Digite o número com DDD.')
       }
 
-      // Atualiza o WhatsApp do usuário
       await supabase
         .from('users')
         .update({ whatsapp: cleanWhatsapp })
         .eq('id', userId)
 
-      // Cria a empresa
       const { error } = await supabase.from('companies').insert({
         user_id: userId,
         cnpj: cleanCnpj,
@@ -122,12 +178,33 @@ export default function OnboardingPage() {
             <input
               type="text"
               value={cnpj}
-              onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+              onChange={(e) => handleCnpjChange(e.target.value)}
               required
               placeholder="00.000.000/0001-00"
               style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '15px', boxSizing: 'border-box' }}
             />
+            {consultando && (
+              <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px' }}>Consultando Receita Federal...</p>
+            )}
           </div>
+
+          {/* Dados da empresa encontrados */}
+          {empresaInfo && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
+              <p style={{ margin: '0 0 4px', fontWeight: '600', color: '#166534' }}>
+                {empresaInfo.razao_social || empresaInfo.nome_fantasia}
+              </p>
+              {empresaInfo.situacao && (
+                <p style={{ margin: '0 0 2px', color: '#15803d' }}>Situação: {empresaInfo.situacao}</p>
+              )}
+              {empresaInfo.cnae && (
+                <p style={{ margin: '0 0 2px', color: '#15803d' }}>Atividade: {empresaInfo.cnae}</p>
+              )}
+              {(empresaInfo.municipio || empresaInfo.uf) && (
+                <p style={{ margin: 0, color: '#15803d' }}>{empresaInfo.municipio}{empresaInfo.uf ? ` / ${empresaInfo.uf}` : ''}</p>
+              )}
+            </div>
+          )}
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>WhatsApp</label>
@@ -162,7 +239,7 @@ export default function OnboardingPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || consultando}
             style={{ 
               width: '100%', 
               padding: '14px', 

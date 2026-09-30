@@ -6,18 +6,18 @@ export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const items = [
-  { label: 'Início', path: '/dashboard', icon: '🏠' },
-  { label: 'Lançamentos', path: '/lancamentos', icon: '📋' },
-  { label: 'DAS', path: '/das', icon: '📄' },
-  { label: 'Guias', path: '/guias', icon: '📚' },
-  { label: 'Simulador', path: '/simulador', icon: '🧮' },
-]
-
-  // Não mostra o menu em login, onboarding e página inicial
+  // Não mostra o menu nas páginas de login e onboarding
   if (pathname === '/login' || pathname === '/onboarding' || pathname === '/') {
     return null
   }
+
+  const items = [
+    { label: 'Início', path: '/dashboard', icon: '🏠' },
+    { label: 'Lançamentos', path: '/lancamentos', icon: '📋' },
+    { label: 'DAS', path: '/das', icon: '📄' },
+    { label: 'Guia MEI', path: '/guias', icon: '📚' },
+    { label: 'Simulador', path: '/simulador', icon: '🧮' },
+  ]
 
   return (
     <nav style={{
@@ -29,8 +29,9 @@ export default function BottomNav() {
       borderTop: '1px solid #e5e7eb',
       display: 'flex',
       justifyContent: 'space-around',
-      padding: '8px 0 calc(8px + env(safe-area-inset-bottom))',
+      padding: '8px 0',
       zIndex: 50,
+      boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
     }}>
       {items.map((item) => {
         const isActive = pathname === item.path
@@ -39,17 +40,18 @@ export default function BottomNav() {
             key={item.path}
             onClick={() => router.push(item.path)}
             style={{
-              background: 'none',
-              border: 'none',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '2px',
+              background: 'none',
+              border: 'none',
               cursor: 'pointer',
-              padding: '6px 12px',
+              padding: '6px 8px',
               color: isActive ? '#2563eb' : '#6b7280',
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: isActive ? '600' : '400',
+              minWidth: '60px'
             }}
           >
             <span style={{ fontSize: '20px' }}>{item.icon}</span>

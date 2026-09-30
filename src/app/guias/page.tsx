@@ -15,7 +15,7 @@ export default function GuiasPage() {
         >
           ←
         </button>
-        <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Guias e Checklist</span>
+        <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Guia MEI</span>
       </header>
 
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '24px 16px' }}>

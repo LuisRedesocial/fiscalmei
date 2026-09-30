@@ -12,6 +12,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [consultando, setConsultando] = useState(false)
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'error' | 'info'>('error')
   const [userId, setUserId] = useState<string | null>(null)
   const [empresaInfo, setEmpresaInfo] = useState<any>(null)
   const router = useRouter()
@@ -59,14 +60,22 @@ export default function OnboardingPage() {
     setEmpresaInfo(null)
 
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`)
-      
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
       if (!res.ok) {
-        throw new Error('CNPJ não encontrado na Receita Federal')
+        if (res.status === 404) {
+          throw new Error('CNPJ não encontrado na Receita Federal')
+        }
+        throw new Error('Não foi possível consultar o CNPJ no momento')
       }
 
       const data = await res.json()
-      
+
       setEmpresaInfo({
         razao_social: data.razao_social || data.nome_fantasia || '',
         nome_fantasia: data.nome_fantasia || '',
@@ -83,8 +92,15 @@ export default function OnboardingPage() {
         setTipoAtividade('servico')
       }
 
+      setMessage('')
     } catch (error: any) {
-      setMessage(error.message || 'Não foi possível consultar o CNPJ')
+      // Não bloqueia o usuário — só avisa
+      setMessageType('info')
+      setMessage(
+        error.message?.includes('Failed to fetch')
+          ? 'Consulta automática indisponível no momento. Você pode continuar normalmente.'
+          : error.message || 'Consulta automática indisponível. Você pode continuar.'
+      )
       setEmpresaInfo(null)
     } finally {
       setConsultando(false)
@@ -94,10 +110,11 @@ export default function OnboardingPage() {
   function handleCnpjChange(value: string) {
     const formatted = formatCnpj(value)
     setCnpj(formatted)
-    
+
     const clean = cleanCnpj(value)
     if (clean.length === 14) {
       if (!isValidCnpj(clean)) {
+        setMessageType('error')
         setMessage('CNPJ inválido. Verifique os números digitados.')
         setEmpresaInfo(null)
         return
@@ -153,6 +170,7 @@ export default function OnboardingPage() {
 
       router.push('/dashboard')
     } catch (error: any) {
+      setMessageType('error')
       setMessage(error.message || 'Erro ao salvar. Tente novamente.')
     } finally {
       setLoading(false)
@@ -182,7 +200,9 @@ export default function OnboardingPage() {
               style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '15px', boxSizing: 'border-box' }}
             />
             {consultando && (
-              <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px' }}>Consultando Receita Federal...</p>
+              <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px' }}>
+                Consultando Receita Federal...
+              </p>
             )}
           </div>
 
@@ -231,14 +251,21 @@ export default function OnboardingPage() {
           </div>
 
           {message && (
-            <div style={{ padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', background: '#fef2f2', color: '#b91c1c' }}>
+            <div style={{ 
+              padding: '12px', 
+              borderRadius: '8px', 
+              marginBottom: '16px', 
+              fontSize: '14px', 
+              background: messageType === 'error' ? '#fef2f2' : '#eff6ff',
+              color: messageType === 'error' ? '#b91c1c' : '#1e40af'
+            }}>
               {message}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading || consultando}
+            disabled={loading}
             style={{ 
               width: '100%', 
               padding: '14px', 

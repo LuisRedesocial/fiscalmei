@@ -198,7 +198,9 @@ export default function OnboardingPage() {
                 <p style={{ margin: '0 0 2px', color: '#15803d' }}>Atividade: {empresaInfo.cnae}</p>
               )}
               {(empresaInfo.municipio || empresaInfo.uf) && (
-                <p style={{ margin: 0, color: '#15803d' }}>{empresaInfo.municipio}{empresaInfo.uf ? ` / ${empresaInfo.uf}` : ''}</p>
+                <p style={{ margin: 0, color: '#15803d' }}>
+                  {empresaInfo.municipio}{empresaInfo.uf ? ` / ${empresaInfo.uf}` : ''}
+                </p>
               )}
             </div>
           )}
@@ -240,4 +242,19 @@ export default function OnboardingPage() {
             style={{ 
               width: '100%', 
               padding: '14px', 
-              background: 
+              background: loading ? '#93c5fd' : '#2563eb', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '10px', 
+              fontSize: '16px', 
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {loading ? 'Salvando...' : 'Continuar'}
+          </button>
+        </form>
+      </div>
+    </main>
+  )
+}

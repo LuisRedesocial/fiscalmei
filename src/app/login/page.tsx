@@ -40,7 +40,7 @@ export default function LoginPage() {
           throw new Error('A senha deve ter pelo menos 6 caracteres')
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -78,9 +78,9 @@ export default function LoginPage() {
         
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{ width: '48px', height: '48px', background: '#2563eb', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '20px' }}>F</span>
+            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '20px' }}>P</span>
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>FiscalMEI</h1>
+          <h1 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>Painel MEI</h1>
           <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '4px' }}>
             {isLogin ? 'Entre na sua conta' : 'Crie sua conta grátis'}
           </p>

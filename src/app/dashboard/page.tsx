@@ -235,9 +235,9 @@ export default function DashboardPage() {
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '32px', height: '32px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>F</span>
+            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>P</span>
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '18px' }}>FiscalMEI</span>
+          <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Painel MEI</span>
         </div>
         
         <button 
@@ -256,7 +256,6 @@ export default function DashboardPage() {
           Acompanhe seu limite de faturamento do MEI
         </p>
 
-        {/* CNPJ vinculado */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>CNPJ vinculado</p>
@@ -312,7 +311,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Aviso do teste grátis */}
         {subscriptionStatus === 'trial' && trialDaysLeft !== null && (
           <div style={{ 
             background: trialDaysLeft <= 3 ? '#fef2f2' : '#eff6ff', 
@@ -350,7 +348,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Alerta de limite */}
         {limitAlert && (
           <div style={{ 
             background: percentual >= 95 ? '#fef2f2' : percentual >= 85 ? '#fff7ed' : '#fefce8',
@@ -366,7 +363,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Alerta de DAS */}
         {dasAlert && (
           <div style={{ 
             background: '#fef2f2',
@@ -382,7 +378,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Card do Limite */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: '600', margin: 0, color: '#374151' }}>
@@ -414,7 +409,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Botões de ação */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <button 
             onClick={() => router.push('/lancamentos')}
@@ -477,7 +471,7 @@ export default function DashboardPage() {
             cursor: 'pointer'
           }}
         >
-          Guias e Checklist
+          Guia MEI
         </button>
       </main>
     </div>

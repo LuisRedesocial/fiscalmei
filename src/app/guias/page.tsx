@@ -20,10 +20,9 @@ export default function GuiasPage() {
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '24px 16px' }}>
         
         <p style={{ color: '#6b7280', marginBottom: '24px', fontSize: '15px' }}>
-          Tutoriais práticos para manter seu MEI em dia e usar melhor o FiscalMEI.
+          Tutoriais práticos para manter seu MEI em dia e usar melhor o Painel MEI.
         </p>
 
-        {/* Tutorial 1 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             1. Como lançar seu faturamento
@@ -41,7 +40,6 @@ export default function GuiasPage() {
           </p>
         </div>
 
-        {/* Tutorial 2 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             2. Como acompanhar o limite do MEI
@@ -61,7 +59,6 @@ export default function GuiasPage() {
           </ol>
         </div>
 
-        {/* Tutorial 3 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             3. Como registrar e pagar o DAS
@@ -69,7 +66,7 @@ export default function GuiasPage() {
           <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151', lineHeight: '1.7' }}>
             <li>No menu, toque em <strong>DAS</strong></li>
             <li>Toque em <strong>Emitir DAS no site oficial da Receita</strong> para gerar a guia</li>
-            <li>Depois de pagar, volte no FiscalMEI e registre o DAS do mês</li>
+            <li>Depois de pagar, volte no Painel MEI e registre o DAS do mês</li>
             <li>Marque como <strong>Pago</strong> para manter o controle</li>
             <li>Você também pode registrar DAS de meses anteriores</li>
           </ol>
@@ -78,7 +75,6 @@ export default function GuiasPage() {
           </p>
         </div>
 
-        {/* Tutorial 4 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             4. Como preencher a DASN-SIMEI
@@ -86,7 +82,7 @@ export default function GuiasPage() {
           <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151', lineHeight: '1.7' }}>
             <li>A declaração deve ser entregue até <strong>31 de maio</strong> do ano seguinte</li>
             <li>Acesse o Portal do Empreendedor ou o app MEI</li>
-            <li>Informe o faturamento total do ano (use o total do FiscalMEI)</li>
+            <li>Informe o faturamento total do ano (use o total do Painel MEI)</li>
             <li>Declare se teve ou não empregado</li>
             <li>Envie a declaração</li>
           </ol>
@@ -95,7 +91,6 @@ export default function GuiasPage() {
           </p>
         </div>
 
-        {/* Tutorial 5 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             5. Quando emitir nota fiscal (NFS-e)
@@ -109,7 +104,6 @@ export default function GuiasPage() {
           </ul>
         </div>
 
-        {/* Tutorial 6 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             6. Reforma Tributária (IBS / CBS) – o que muda
@@ -119,11 +113,10 @@ export default function GuiasPage() {
             <li><strong>CBS</strong> – Contribuição da União</li>
             <li>A mudança é gradual a partir de 2026</li>
             <li>O MEI continua com DAS simplificado na transição</li>
-            <li>O FiscalMEI será atualizado conforme as regras oficiais</li>
+            <li>O Painel MEI será atualizado conforme as regras oficiais</li>
           </ul>
         </div>
 
-        {/* Tutorial 7 */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: '600', margin: '0 0 12px' }}>
             7. Como usar o Simulador MEI → ME
@@ -139,9 +132,8 @@ export default function GuiasPage() {
           </p>
         </div>
 
-        {/* Dica final */}
         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '16px', fontSize: '14px', color: '#1e40af' }}>
-          <strong>Dica final:</strong> Use o FiscalMEI toda semana. Quanto mais atualizado estiver o seu faturamento, mais seguro você fica em relação ao limite e à DASN.
+          <strong>Dica final:</strong> Use o Painel MEI toda semana. Quanto mais atualizado estiver o seu faturamento, mais seguro você fica em relação ao limite e à DASN.
         </div>
       </main>
     </div>
